@@ -3,7 +3,8 @@ const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv').config('../.env');
-console.log('dotenv : ', dotenv);
+const cryptojs = require("crypto-js");
+// console.log('dotenv : ', dotenv);
 
 //icijco : ajouter un controle des entrées ?
 //icijco: gérer ceci => "Un plugin Mongoose doit assurer la remontée des erreurs issues de la base de données"
@@ -16,8 +17,10 @@ exports.signup = (req, res, next) => {
         // création de l'enregistrement user dans la BDD User + retour réponse
         .then(hash => {
             console.log('hash: ', hash);
+            const cryptedEmail = cryptojs.HmacSHA512(req.body.email, `${process.env.CRYPTOJS_SECRET_KEY}`).toString();
             const user = new User({
-                email: req.body.email,
+                // email: req.body.email,
+                email: cryptedEmail,
                 password: hash
             });
             console.log('user: ', user);
@@ -31,7 +34,10 @@ exports.signup = (req, res, next) => {
 exports.login = (req, res, next) => {
      console.log('login : ', req.body.email);
     // recherche de l'enregistrement dans la BDD User
-    User.findOne({ email: req.body.email })
+    //ICIJCO ajouter chiffrement email pour le masquer dasn bdd (req.body.email à crypter)
+    const decryptedEmail = cryptojs.HmacSHA512(req.body.email, `${process.env.CRYPTOJS_SECRET_KEY}`).toString();
+    // User.findOne({ email: req.body.email })
+    User.findOne({ email: decryptedEmail })
         .then(user => {
             if (user === null) {
                 console.log('user non trouvé'); 
