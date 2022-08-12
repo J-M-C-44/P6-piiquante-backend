@@ -1,5 +1,10 @@
 'use strict';
 
+// <---------------------------- Middleware "checkLike" --------------------------->
+/**
+* vérifie que la donnée like transmise pour la MAJ like/dislike est valide:
+*   - si KO : renvoi statut 400 
+*/
 module.exports = (req, res, next) => {
     console.log('controle like');
     console.log('req.body.like : ', req.body.like);

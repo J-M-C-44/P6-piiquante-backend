@@ -1,7 +1,20 @@
 'use strict';
+
+// <------------------------------------ imports -------------------------------------->
+// package jwt : pour décoder le token
 const jwt = require('jsonwebtoken');
+
+//Params
 const dotenv = require('dotenv').config('../.env');
- 
+
+
+// <---------------------------- Middleware "authorize" --------------------------->
+/**
+* vérifie que le token fourni est bien valide  :
+*   - si KO : 
+    -   renvoi statut 401 si vérication jwt ko
+    -   renvoi statut 401 si vérification jwt ok mais user id du body différent de celui du token 
+*/
 module.exports = (req, res, next) => {
    try {
         // console.log('req = ', req );

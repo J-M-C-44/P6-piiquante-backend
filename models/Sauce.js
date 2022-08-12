@@ -1,4 +1,7 @@
 'use strict';
+
+// <------------------------------------- imports --------------------------------------->
+// pour faciliter gestion de mongo DB
 const mongoose = require('mongoose');
 
 const sauceSchema = mongoose.Schema({

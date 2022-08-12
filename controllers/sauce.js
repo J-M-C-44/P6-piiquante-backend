@@ -1,38 +1,60 @@
 'use strict';
+// <------------------------------------- imports --------------------------------------->
+// models
 const Sauce = require('../models/sauce');
-const fs = require('fs');
+
+// fonction mutualisée de suppression de fichier
+const removeImageFile = require('../utils/removeFile');
 
 
+// <------------------------------ Controller "getAllSauces" ---------------------------->
+/**
+* récupère l'ensemble des sauces dans la BDD Sauce
+*   - si OK: renvoie satut 200
+*   - si ko : renvoie statut 400
+*/
 exports.getAllSauces = (req, res, next) => {
-    console.log('getAllSauces');
+    // console.log('getAllSauces');
     Sauce.find()
         .then(sauces => {
-            console.log('getAllSauces ok');
+            // console.log('getAllSauces ok');
             return res.status(200).json(sauces);            
         })
         .catch(error => res.status(400).json({ error }));
 };
 
+// <------------------------------ Controller "getOneSauce" ---------------------------->
+/**
+* récupère la sauce souhaitée dans la BDD Sauce à partir de son ID transmis en paramètre
+*   - si OK: renvoie satut 200
+*   - si ko : renvoie statut 404
+*/
 exports.getOneSauce = (req, res, next) => {
-    console.log('getOneSauce');
+    // console.log('getOneSauce');
     Sauce.findOne({_id: req.params.id})
     .then(sauce => {
-        console.log('getOneSauce ok');
+        // console.log('getOneSauce ok');
         return res.status(200).json(sauce);            
     })
-    .catch(error => res.status(400).json({ error }));
+    .catch(error => res.status(404).json({ error }));
 };
 
+// <------------------------------ Controller "createSauce" ---------------------------->
+/**
+* crée une nouvelle sauce dans la BDD Sauce :
+*   - remarque : contrôle des entrées effectuées au préalable dans le middleware checkSauceData.js
+*   - récupération de l'objet sauce dans le body
+*   - création enreg sauce  à partir de infos fournies dans l'object sauce + initialisation des autres champs
+*   - si OK: renvoi satut 201
+*   - si KO : suppression du fichier transmis et renvoie statut 400 
+*/
 exports.createSauce = (req, res, next) => {
-    console.log('createSauce, body = ', req.body );
-    
+    // console.log('createSauce, body = ', req.body );
+    // récupération de l'objet sauce 
     const sauceObject = JSON.parse(req.body.sauce);
-    console.log('sauceObject = ', sauceObject );
 
-    // ICIJCO ajouter contrôle des entrées
     const sauce = new Sauce({
-    //    ...sauceObject,
-        // imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+    //  pas d'utilisation de ...sauceObject pour être certain de ne créer que les champs souhaités
         userId:         req.auth.userId,
         name:           sauceObject.name,
         manufacturer:   sauceObject.manufacturer,
@@ -45,58 +67,69 @@ exports.createSauce = (req, res, next) => {
         usersLiked:     [],
         usersDisliked:  []
     });
+
     sauce.save()
     .then(() => { res.status(201).json({message: 'sauce enregistrée !'})})
 
     .catch((error) => {
-        // si pb, on fait retour arrière sur le fichier
-        fs.unlink('images/'+req.file.filename,(err) => {
-            if (err) {
-                console.log('impossible de supprimer le fichier image ', oldFilename, ' erreur : ', err );
-            } else { 
-                console.log('pb sur insertion bdd sauce, retour arrière : fichier ', req.file.filename, ' supprimé');
-            }
-         });
-        res.status(401).json({ error });
+        // si pb, on fait retour arrière sur le fichier transmis et qui a été enregistrer avec multer
+        removeImageFile(req.file.filename);
+        res.status(400).json({ error });
     });
 };
 
+// <------------------------------ Controller "modifySauce " ---------------------------->
+/**
+* modifie une sauce existante dans la BDD Sauce à partir de son ID transmis en paramètre :
+*   - remarque : contrôle des entrées effectuées au préalable dans le middleware checkSauceData.js
+*   - récupération de l'objet sauce dans le body (gestion d'avec ou sans fichier)
+*   - recherche de l'enregistrement demandé en BDD Sauce 
+*   - contrôles sur les userId : celui fournit doit correspondre à celui qui fait la demande + celui associé à la sauce, sinon suppression du fichier transmis et renvoie statut 403 
+*   - mise à jour des informations en BDD
+*   - si OK: suppression de l'ancien fichier image et renvoi satut 201
+*   - si KO : suppression du nouveau fichier transmis et renvoie statut 404 ou 500 
+*/
 exports.modifySauce = (req, res, next) => {
-    console.log('modifySauce');
-    
+    // console.log('modifySauce');
+
+    // récupération de l'objet sauce 
     const sauceObject = req.file ? {
         ...JSON.parse(req.body.sauce),
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
     } : { ...req.body };
-    
+
+    // pré-contrôle : le userID fourni doit correspondre à celui qui fait la demande
     if (sauceObject.userId != req.auth.userId) {
-        console.log('! tentative piratage, sauceObject.userId = ', sauceObject.userId, ' <> req.auth.userId =   ', req.auth.userId );
+        console.log('! tentative piratage ? sauceObject.userId = ', sauceObject.userId, ' <> req.auth.userId =   ', req.auth.userId );
+        // on fait retour arrière sur l'éventuel fichier transmis
+        if (req.file) { 
+            removeImageFile(req.file.filename);
+        };
         res.status(403).json({ message : 'Not authorized'});
+
     } else {
+    // recherche de l'enregistrement demandé en BDD Sauce 
         Sauce.findOne({_id: req.params.id})
         
         .then((sauce) => {
-            console.log('findOne OK, sauce = ', sauce);
+            // console.log('findOne OK, sauce = ', sauce);          
+            // controle que le userID du demandeur correspond bien à celui du créateur de la sauce
             if (sauce.userId != req.auth.userId) {
-                // on fait retour arrière sur le fichier
-                fs.unlink('images/'+req.file.filename,(err) => {
-                    if (err) {
-                        console.log('impossible de supprimer le fichier image ', oldFilename, ' erreur : ', err );
-                    } else { 
-                        console.log('tentative de modification d une image non propriétaire, retour arrière : fichier ', req.file.filename, ' supprimé');
-                    }
-                });
+                // on fait retour arrière sur l'éventuel fichier transmis
+                if (req.file) { 
+                    removeImageFile(req.file.filename);
+                };
                 res.status(403).json({ message : 'Not authorized'});
                 
             } else {
+            // mise à jour de l'enregistrement demandé en BDD Sauce 
                 const oldFilename = sauce.imageUrl.split("/images/")[1];
-                console.log('oldFilename = ', oldFilename);
-                // on conserve l'URL initiale en absence de fichier
+                // console.log('oldFilename = ', oldFilename);
+                // sans nouveau fichier image transmis, on conserve l'URL initiale 
                 if (!req.file) {
                     sauceObject.imageUrl = sauce.imageUrl;
-                    console.log('sauceObject.imageUrl= ', sauceObject.imageUrl);
                 };
-                // console.log('sauceObject= ', sauceObject);
+                
                 Sauce.updateOne({ _id: req.params.id}, 
                     { 
                     name:           sauceObject.name,
@@ -108,62 +141,64 @@ exports.modifySauce = (req, res, next) => {
                     }
                 )
                 .then(() => {
-                    console.log('update db ok');
-                    // delete fichier précédent
+                    // delete fichier précédent si besoin
                     if (req.file) {
-                        fs.unlink('images/'+oldFilename,(err) => {
-                            if (err) {
-                                console.log('impossible de supprimer le fichier image ', oldFilename, ' erreur : ', err );
-                            }
-                         });
+                        removeImageFile(oldFilename);      
                     }
-                    res.status(200).json({message : 'Sauce modifiée!'})  
+                    res.status(200).json({message : 'Sauce modifiée!'})
                 })
                    
                 .catch((error) => {
-                    console.log('update KO !');
-                    res.status(401).json({ error });
+                    console.log('update DB KO (modifySauce)!');
+                    // si pb, on fait retour arrière sur l'éventuel fichier transmis
+                    if (req.file) {
+                        removeImageFile(req.file.filename);      
+                    }
+                    res.status(500).json({ error });
                 });
             }
         })
         .catch((error) => {
-            console.log(' pb findOne; erreur : ', error);
-            res.status(400).json({ error });
+            console.log(' pb findOne (modifySauce); erreur : ', error);
+            res.status(404).json({ error });
         });
     }
 
 };
 
+// <------------------------------ Controller "deleteSauce" ---------------------------->
+/**
+* supprime une sauce existante dans la BDD Sauce à partir de son ID transmis en paramètre :
+*   - recherche de l'enregistrement demandé en BDD Sauce 
+*   - contrôle que le userID du demandeur correspond bien à celui du créateur de la sauce, sinon suppression du fichier transmis et renvoie statut 403  
+*   - suppression de l'enregistrement en BDD
+*   - si OK: suppression de l'ancien fichier image et renvoi satut 200
+*   - si KO : renvoie statut 400 ou 500 
+*/
 exports.deleteSauce = (req, res, next) => {
-    console.log('deleteSauce');
-
-    console.log('req.params.id = ', req.params.id);
+    // console.log('deleteSauce');
+    // recherche de l'enregistrement demandé en BDD Sauce  
     Sauce.findOne({_id: req.params.id})
+
     .then((sauce) => {
-        // console.log('findOne OK, sauce = ', sauce);
+        // contrôle que le userID du demandeur correspond bien à celui du créateur de la sauce
         if (sauce.userId != req.auth.userId) {
             res.status(403).json({ message : 'Not authorized'});
         } else {
+        // suppression de l'enregistrement en BDD
             const oldFilename = sauce.imageUrl.split("/images/")[1];
-            console.log('oldFilename = ', oldFilename);
-
             Sauce.deleteOne({ _id: req.params.id})
 
             .then(() => {
-                console.log('delete db ok');
-                // delete fichier précédent
-                fs.unlink('images/'+oldFilename,(err) => {
-                    if (err) {
-                        console.log('impossible de supprimer le fichier image ', oldFilename, ' erreur : ', err );
-                    }
-                });
-
+                // console.log('delete db ok');
+                // delete du fichier correspondant
+                removeImageFile(oldFilename);
                 res.status(200).json({message : 'Sauce supprimée!'})  
             })
                 
             .catch((error) => {
-                console.log('update KO !');
-                res.status(401).json({ error });
+                console.log('delete DB KO !');
+                res.status(500).json({ error });
             });
         }
     })
@@ -173,59 +208,49 @@ exports.deleteSauce = (req, res, next) => {
 
 };
 
+// <------------------------------ Controller "evaluateSauce" ---------------------------->
+/**
+* change la notation d'une sauce existante dans la BDD Sauce à partir de son ID transmis en paramètre :
+*   - remarque : contrôle des entrées effectuées au préalable dans le middleware checkLike.js
+*   - recherche de l'enregistrement demandé en BDD Sauce 
+*   - contrôle que le demandeur ne demande pas un 2eme like ou dislike (renvoi 403 sinon)
+*   - selon réception 
+        - d'un like (1) ou dislike (-1) : incrémentation du nb de likes ou dislikes et ajout au tableau des likeurs/dislikeurs
+        - d'une annnulation (0) : décrémentation du nb de likes ou dislikes et supression dans le tableau des likeurs/dislikeurs
+*   - si OK:  MAJ de l'enregistrement en BDD et renvoi satut 200
+*   - si KO : renvoie statut 400 ou 500 
+*/
 exports.evaluateSauce = (req, res, next) => {
     console.log('evaluateSauce');
 
     Sauce.findOne({_id: req.params.id})
         .then((sauce) => {
-            console.log('findOne OK, sauce = ', sauce);
+            // console.log('findOne OK, sauce = ', sauce);
+            // recherche si user à déjà liké ou disliké
             let allreadyLiked = false;
             let allreadyDisliked = false;
-            // recherche si user à déjà liké ou disliké
+            
             if (sauce.usersLiked.includes(req.auth.userId)) {
                 allreadyLiked = true;
-                console.log('allreadyLiked ', allreadyLiked );
             }
             if (sauce.usersDisliked.includes(req.auth.userId)) {
                 allreadyDisliked = true;
-                console.log('allreadyDisliked ', allreadyDisliked );
-            }    
-                      
+            }  
+
+            // traitement des différents cas de figure / like         
             switch (req.body.like) {
+                // ajout d'un like
                 case 1:
-                    console.log('like = 1');
+                    // contrôle que le demandeur n'a pas déjà un like
                     if (allreadyLiked) {
                         console.log('déjà un like pour le user : ', req.auth.userId);
                         res.status(403).json({ message : 'Not authorized'})
                     } else {
-                        // if (allreadyDisliked) {
-                        //     Sauce.updateOne({ _id: req.params.id}, 
-                        //         { 
-                        //         $inc: { likes: 1 },
-                        //         $push: { usersLiked: req.auth.userId },
-                        //         $inc: { likes: -1 },
-                        //         $pull: { usersDisliked: req.auth.userId }  
-                        //         }
-                        // } else {
-                        //     Sauce.updateOne({ _id: req.params.id}, 
-                        //         { 
-                        //         $inc: { likes: 1 },
-                        //         $push: { usersLiked: req.auth.userId }, 
-                        //         }
-                        // }
-                        // then(() => {
-                        //     console.log('update db like =1 ok');
-                        //     res.status(200).json({message : 'Sauce modifiée!'})  
-                        // })
-                        // .catch((error) => {
-                        //     console.log('update db like =1 KO !');
-                        //     res.status(401).json({ error });
-                        // });
-                        console.log('avant sauce.likes++');
+                    // si ok : +1 like et ajout userid au tableau
                         sauce.likes++;
-                        console.log('sauce.likes++');
                         sauce.usersLiked.push(req.auth.userId);
-                        
+
+                        // gestion du cas d'erreur où le demandeur aurait un dislike [ne devrait logiquement pas de produire]
                         if (allreadyDisliked)
                            if (sauce.dislikes < 1) {
                                 sauce.dislikes = 0
@@ -236,19 +261,18 @@ exports.evaluateSauce = (req, res, next) => {
                         }
                     break;
 
-                case 0:
-                    console.log('like = 0');    
+                // suppression d'un like ou d'un dislike
+                case 0: 
+                    // s'il avait un like, on l'enlève
                     if (allreadyLiked) {
                         if (sauce.likes < 1) {
-                            console.log('sauce.likes <1');
                             sauce.likes = 0
                        } else {
                              sauce.likes--
-                             console.log('sauce.likes --', sauce.likes );
                        }
                        sauce.usersLiked = sauce.usersLiked.filter((userId) => ( !(userId == req.auth.userId) ));
-                       console.log('sauce.usersLiked filter', sauce.usersLiked);
                     }
+                    // s'il avait un dislike, on l'enlève
                     if (allreadyDisliked) {
                         if (sauce.dislikes < 1) {
                             sauce.dislikes = 0
@@ -259,15 +283,18 @@ exports.evaluateSauce = (req, res, next) => {
                     }                 
                     break;
 
+                // ajout d'un dislike
                 case -1:
-                    console.log('like = -1');
+                    // contrôle que le demandeur n'a pas déjà un dislike
                     if (allreadyDisliked) {
                         console.log('déjà un dislike pour le user : ', req.body.userId);
                         res.status(403).json({ message : 'Not authorized'})
                     } else {
-
+                    // si ok : +1 like et ajout userid au tableau
                         sauce.dislikes++;
                         sauce.usersDisliked.push(req.auth.userId);
+
+                        // gestion du cas d'erreur où le demandeur aurait un like [ne devrait logiquement pas de produire]
                         if (allreadyLiked) {
                             if (sauce.likes < 1) {
                                 sauce.likes = 0
@@ -279,11 +306,12 @@ exports.evaluateSauce = (req, res, next) => {
                     } 
                     break;
 
+                // valeurs non prévues/autorisées
                 default:
                     console.log('valeur de like non autorisée : ', req.body.like);
-                    res.status(403).json({ message : 'Not authorized'})                          
+                    res.status(400).json({ message : 'like invalid. Must be 1, 0 or -1'})                          
             } 
-
+            // enregistrement en BDD
             Sauce.updateOne({ _id: req.params.id}, 
                 { 
                 likes: sauce.likes,
@@ -293,19 +321,17 @@ exports.evaluateSauce = (req, res, next) => {
                 }
             )
             .then(() => {
-                console.log('update db like/dislike ok');
                 res.status(200).json({message : 'mise à jour like/dislike effectuée!'})  
             })
                 
             .catch((error) => {
-                console.log('update KO !');
-                res.status(401).json({ error });
+                console.log('update KO (evaluateSauce)!');
+                res.status(500).json({ error });
             });
         })
         .catch((error) => {
             res.status(400).json({ error });
         });
-
 
 };
 
