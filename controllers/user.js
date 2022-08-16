@@ -42,7 +42,7 @@ exports.signup = (req, res, next) => {
             });
             console.log('user: ', user);
             user.save()
-                .then(() => res.status(201).json({ message: 'Utilisateur créé' }))
+                .then(() => res.status(201).json({ message: 'user created' }))
                 .catch(error => res.status(400).json({ error }));
         })
         .catch(error => res.status(500).json({ error }));
@@ -67,14 +67,14 @@ exports.login = (req, res, next) => {
         .then(user => {
             if (user === null) {
                 console.log('user non trouvé'); 
-                return res.status(401).json({ message: 'Paire identifiant/mot de passe incorrecte'});
+                return res.status(401).json({ message: 'Incorrect username/password pair'});
             }
             // verification que le mot de passe et le hash dans BDD User correspondent, et on renvoie un Token chiffré
             bcrypt.compare(req.body.password, user.password)
                 .then(valid => {
                     if (!valid) {
                         // console.log('user trouvé mais mots de passe différents'); 
-                        return res.status(401).json({ message: 'Paire identifiant/mot de passe incorrecte' });
+                        return res.status(401).json({ message: 'Incorrect username/password pair' });
                     }
                     res.status(200).json({
                         userId: user._id,

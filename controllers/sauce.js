@@ -69,7 +69,7 @@ exports.createSauce = (req, res, next) => {
     });
 
     sauce.save()
-    .then(() => { res.status(201).json({message: 'sauce enregistrée !'})})
+    .then(() => { res.status(201).json({message: 'sauce registered'})})
 
     .catch((error) => {
         // si pb, on fait retour arrière sur le fichier transmis et qui a été enregistrer avec multer
@@ -145,7 +145,7 @@ exports.modifySauce = (req, res, next) => {
                     if (req.file) {
                         removeImageFile(oldFilename);      
                     }
-                    res.status(200).json({message : 'Sauce modifiée!'})
+                    res.status(200).json({message : 'Sauce modified'})
                 })
                    
                 .catch((error) => {
@@ -193,7 +193,7 @@ exports.deleteSauce = (req, res, next) => {
                 // console.log('delete db ok');
                 // delete du fichier correspondant
                 removeImageFile(oldFilename);
-                res.status(200).json({message : 'Sauce supprimée!'})  
+                res.status(200).json({message : 'Sauce deleted !'})  
             })
                 
             .catch((error) => {
@@ -321,7 +321,7 @@ exports.evaluateSauce = (req, res, next) => {
                 }
             )
             .then(() => {
-                res.status(200).json({message : 'mise à jour like/dislike effectuée!'})  
+                res.status(200).json({message : 'update like/dislike done'})  
             })
                 
             .catch((error) => {
