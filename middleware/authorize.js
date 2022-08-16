@@ -27,7 +27,7 @@ module.exports = (req, res, next) => {
         } else { 
             req.auth = { userId: userId };
         };
-       console.log('req.auth = ', req.auth );
+       //console.log('req.auth = ', req.auth );
 	next();
    } catch(error) {
        res.status(401).json({ error });

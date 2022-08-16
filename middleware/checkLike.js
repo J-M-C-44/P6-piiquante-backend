@@ -6,8 +6,8 @@
 *   - si KO : renvoi statut 400 
 */
 module.exports = (req, res, next) => {
-    console.log('controle like');
-    console.log('req.body.like : ', req.body.like);
+    // console.log('controle like');
+    // console.log('req.body.like : ', req.body.like);
     if ( req.body.like == 1 || req.body.like == 0 || req.body.like == -1) {
         next();
     } else {

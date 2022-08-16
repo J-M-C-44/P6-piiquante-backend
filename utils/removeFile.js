@@ -10,7 +10,7 @@ const fs = require('fs');
 */
 function removeImageFile(filename) {
 
-    console.log( 'remove fonction - filename to delete :', filename)    
+    // console.log( 'remove fonction - filename to delete :', filename)    
     fs.unlink('images/'+filename,(err) => {
         if (err) {
             console.log('impossible de supprimer le fichier image ', filename, ' erreur : ', err );

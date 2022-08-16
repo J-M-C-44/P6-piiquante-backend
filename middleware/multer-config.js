@@ -34,12 +34,12 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, callback) => {
     const testMimeType = MIME_TYPES[file.mimetype];
     if (testMimeType != undefined) {
-         console.log('mimetype ok : ', file.mimetype );
+        //  console.log('mimetype ok : ', file.mimetype );
         callback(null, true);
     } else {
         console.log('mimetype ko : ', file.mimetype );
         console.log('req.fileValidationError : ', req.fileValidationError );
-        callback(new Error('format d image non pris en charge')) 
+        callback(new Error('unsupported image format')) 
     }
 };
 
