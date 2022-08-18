@@ -1,4 +1,5 @@
 'use strict';
+
 // <------------------------------------- imports --------------------------------------->
 // models
 const Sauce = require('../models/sauce');
@@ -69,10 +70,10 @@ exports.createSauce = (req, res, next) => {
     });
 
     sauce.save()
-    .then(() => { res.status(201).json({message: 'sauce registered'})})
+    .then(() => { res.status(201).json({message: 'sauce added'})})
 
     .catch((error) => {
-        // si pb, on fait retour arrière sur le fichier transmis et qui a été enregistrer avec multer
+        // si pb, on fait retour arrière sur le fichier transmis et qui a été enregistré avec multer
         removeImageFile(req.file.filename);
         res.status(400).json({ error });
     });
@@ -160,6 +161,10 @@ exports.modifySauce = (req, res, next) => {
         })
         .catch((error) => {
             console.log(' pb findOne (modifySauce); erreur : ', error);
+            // si pb, on fait retour arrière sur l'éventuel fichier transmis
+            if (req.file) { 
+                removeImageFile(req.file.filename);
+            }
             res.status(404).json({ error });
         });
     }
@@ -225,7 +230,6 @@ exports.evaluateSauce = (req, res, next) => {
 
     Sauce.findOne({_id: req.params.id})
         .then((sauce) => {
-            // console.log('findOne OK, sauce = ', sauce);
             // recherche si user à déjà liké ou disliké
             let allreadyLiked = false;
             let allreadyDisliked = false;

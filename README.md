@@ -7,6 +7,8 @@
 
 ##  Installation
   
+pré-requis : avoir une compte Mongo DB Atlas et créer une base de données qui contiendra le 2 collections (il est recommandé de créer un user dédié)
+
 1) dans le terminal, à partir du dossier backend, taper `npm install`
 2) fichier `.env.example ` situé à la racine du projet : supprimer l'extension `.example `  
 3) renseigner vos propres valeurs de variables d'environnement ( remplacer les ` XXXXXXX `) 

@@ -1,7 +1,7 @@
 'use strict';
-// <------------------------------------- imports --------------------------------------->
 
-const express = require('express');  // framework de serveur pour node.js
+// <------------------------------------- imports --------------------------------------->
+const express = require('express');  // framework d'application web pour node.js
 const mongoose = require('mongoose'); // outil de modélisation d’object pour MongoDB
 const path = require('path'); // permet de gérer le chemin de fichier
 

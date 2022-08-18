@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
   }
 });
 
-// on ne prend en charge que les fichiers autorisés
+// on ne prend en charge que les fichiers avec des formats autorisés
 const fileFilter = (req, file, callback) => {
     const testMimeType = MIME_TYPES[file.mimetype];
     if (testMimeType != undefined) {
