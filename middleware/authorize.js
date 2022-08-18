@@ -17,7 +17,6 @@ const dotenv = require('dotenv').config('../.env');
 */
 module.exports = (req, res, next) => {
    try {
-        // console.log('req = ', req );
        const token = req.headers.authorization.split(' ')[1];
        const decodedToken = jwt.verify(token, process.env.TOKEN_SECRET);
        const userId = decodedToken.userId;
@@ -27,8 +26,8 @@ module.exports = (req, res, next) => {
         } else { 
             req.auth = { userId: userId };
         };
-       //console.log('req.auth = ', req.auth );
-	next();
+
+	    next();
    } catch(error) {
        res.status(401).json({ error });
    }

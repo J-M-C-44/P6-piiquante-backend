@@ -16,7 +16,6 @@ const checkPassword = require("../middleware/checkPassword");
 // controllers
 const userCtrl = require('../controllers/user');
 
-// routes
 // enregistrement d'un nouvel utilisateur
 router.post('/signup',  limiter.signupRate, checkEmail, checkPassword,  userCtrl.signup);
 // connexion d'un utilisateur existant
