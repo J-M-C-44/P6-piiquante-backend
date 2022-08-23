@@ -251,6 +251,15 @@ exports.evaluateSauce = (req, res, next) => {
                         res.status(403).json({ message : 'Not authorized'})
                     } else {
                     // si ok : +1 like et ajout userid au tableau
+                        // méthode choisie ici: passer en "natif / perf". Mais il aurait été possible de passer les facilités offertes par MONGOOSE. 
+                        // exemple :
+                                // Sauce.updateOne({ _id: req.params.id}, 
+                                //         { 
+                                //         $inc: { likes: 1 },
+                                //         $push: { usersLiked: req.auth.userId },
+                                //         $inc: { likes: -1 },
+                                //         $pull: { usersDisliked: req.auth.userId }  
+                                //         }
                         sauce.likes++;
                         sauce.usersLiked.push(req.auth.userId);
 
